@@ -11,7 +11,8 @@ func handlerChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type returnVals struct {
-		Valid bool `json:"valid"`
+		//		Valid bool `json:"valid"`
+		Cleaned_body string `json:"cleaned_body"`
 	}
 
 	const maxChirpLength = 140
@@ -30,6 +31,6 @@ func handlerChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, returnVals{
-		Valid: true,
+		Cleaned_body: badwordCheck(params.Body),
 	})
 }
