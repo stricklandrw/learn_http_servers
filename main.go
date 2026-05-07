@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
-
 	"os"
 	"sync/atomic"
 
@@ -19,6 +18,7 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
+	platform       string
 }
 
 func main() {
@@ -29,6 +29,10 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		log.Fatal("DB_URL environment variable is not set")
+	}
+	platform := os.Getenv("PLATFORM")
+	if platform == "" {
+		log.Fatal("PLATFORM environment variable must be set")
 	}
 
 	dbConn, err := sql.Open("postgres", dbURL)
@@ -41,6 +45,7 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
+		platform:       platform,
 	}
 
 	mux := http.NewServeMux()
@@ -52,6 +57,7 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	mux.HandleFunc("POST /api/validate_chirp", handlerChirps)
+	mux.HandleFunc("POST /api/users", apiCfg.handlerAddUser)
 
 	server := &http.Server{
 		Addr:    ":" + port,

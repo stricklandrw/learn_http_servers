@@ -28,6 +28,9 @@ go.work.sum
 # env file
 .env
 
+# Go executable
+learn-http-servers
+
 # Editor/IDE
 # .idea/
 # .vscode/
