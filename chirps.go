@@ -2,20 +2,32 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"time"
+
+	"learn_http_servers/internal/database"
+
+	"github.com/google/uuid"
 )
 
-func handlerChirps(w http.ResponseWriter, r *http.Request) {
+type Chirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
+func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body string `json:"body"`
+		Body   string    `json:"body"`
+		UserID uuid.UUID `json:"user_id"`
 	}
 
-	type returnVals struct {
-		//		Valid bool `json:"valid"`
-		Cleaned_body string `json:"cleaned_body"`
+	type response struct {
+		Chirp
 	}
-
-	const maxChirpLength = 140
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
@@ -25,12 +37,39 @@ func handlerChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(params.Body) > maxChirpLength {
+	cleaned, err := validateChirp(params.Body)
+	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, returnVals{
-		Cleaned_body: badwordCheck(params.Body),
+	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
+		Body:   cleaned,
+		UserID: params.UserID,
 	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, response{
+		Chirp: Chirp{
+			ID:        chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body:      params.Body,
+			UserID:    params.UserID,
+		},
+	})
+}
+
+func validateChirp(body string) (string, error) {
+	const maxChirpLength = 140
+
+	if len(body) > maxChirpLength {
+		return "", errors.New("chirp is too long")
+	}
+
+	cleaned := badwordCheck(body)
+	return cleaned, nil
 }
