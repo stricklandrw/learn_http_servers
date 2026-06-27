@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -86,7 +88,7 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 func GetBearerToken(headers http.Header) (string, error) {
 	authHeader := headers.Get("Authorization")
 	if authHeader == "" {
-		return "", errors.New("missing authorization header")
+		return "", ErrNoAuthHeaderIncluded
 	}
 
 	if !strings.HasPrefix(authHeader, "Bearer ") {
@@ -94,4 +96,11 @@ func GetBearerToken(headers http.Header) (string, error) {
 	}
 
 	return authHeader[7:], nil
+}
+
+// MakeRefreshToken - Creates a new refresh token
+func MakeRefreshToken() string {
+	token := make([]byte, 32)
+	rand.Read(token)
+	return hex.EncodeToString(token)
 }

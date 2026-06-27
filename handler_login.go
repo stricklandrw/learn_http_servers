@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"learn_http_servers/internal/auth"
+	"learn_http_servers/internal/database"
 	"net/http"
 	"time"
 )
@@ -11,11 +12,11 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
-		Expiry   int    `json:"expires_in_seconds"`
 	}
 	type response struct {
 		User
-		Token string `json:"token"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -38,18 +39,25 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenDuration := time.Hour
-	if params.Expiry > 0 && params.Expiry < 3600 {
-		tokenDuration = time.Duration(params.Expiry) * time.Second
-	}
-
 	accessToken, err := auth.MakeJWT(
 		user.ID,
 		cfg.serverSecret,
-		tokenDuration,
+		time.Hour,
 	)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error creating token", err)
+		return
+	}
+
+	refreshToken := auth.MakeRefreshToken()
+
+	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(60 * 24 * time.Hour), // Refresh token valid for 60 days
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error saving refresh token", err)
 		return
 	}
 
@@ -60,6 +68,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		},
-		Token: accessToken,
+		Token:        accessToken,
+		RefreshToken: refreshToken,
 	})
 }
