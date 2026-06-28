@@ -42,7 +42,7 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	updateUser, err := cfg.db.UpdateUser(r.Context(), database.UpdateUserParams{
+	user, err := cfg.db.UpdateUser(r.Context(), database.UpdateUserParams{
 		ID:             userID,
 		Email:          params.Email,
 		HashedPassword: hashedPassword,
@@ -54,10 +54,10 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
-			ID:        updateUser.ID,
-			CreatedAt: updateUser.CreatedAt,
-			UpdatedAt: updateUser.UpdatedAt,
-			Email:     updateUser.Email,
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
 		},
 	})
 }
