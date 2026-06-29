@@ -91,11 +91,12 @@ func GetBearerToken(headers http.Header) (string, error) {
 		return "", ErrNoAuthHeaderIncluded
 	}
 
-	if !strings.HasPrefix(authHeader, "Bearer ") {
+	splitHeader := strings.Split(authHeader, " ")
+	if len(splitHeader) != 2 || splitHeader[0] != "Bearer" {
 		return "", errors.New("invalid authorization header")
 	}
 
-	return authHeader[7:], nil
+	return splitHeader[1], nil
 }
 
 // MakeRefreshToken - Creates a new refresh token
@@ -103,4 +104,19 @@ func MakeRefreshToken() string {
 	token := make([]byte, 32)
 	rand.Read(token)
 	return hex.EncodeToString(token)
+}
+
+// GetAPIKey - Extracts the API key from the Authorization header
+func GetAPIKey(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return "", ErrNoAuthHeaderIncluded
+	}
+
+	splitHeader := strings.Split(authHeader, " ")
+	if len(splitHeader) != 2 || splitHeader[0] != "ApiKey" {
+		return "", errors.New("invalid authorization header")
+	}
+
+	return splitHeader[1], nil
 }
