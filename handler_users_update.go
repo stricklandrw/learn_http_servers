@@ -66,20 +66,24 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 }
 
 func (cfg *apiConfig) handlerUpdateRedStatus(w http.ResponseWriter, r *http.Request) {
-	type parameters struct {
-		Event  string `json:"event"`
-		UserID string `json:"data/user_id"`
+	type Data struct {
+		UserID string `json:"user_id"`
+	}
+
+	type Parameters struct {
+		Event string `json:"event"`
+		Data  Data   `json:"data"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	params := parameters{}
+	params := Parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error decoding JSON parameters", err)
 		return
 	}
 
-	userID, err := uuid.Parse(params.UserID)
+	userID, err := uuid.Parse(params.Data.UserID)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid user ID", err)
 		return
